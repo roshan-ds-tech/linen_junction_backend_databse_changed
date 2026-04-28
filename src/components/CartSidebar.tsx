@@ -28,10 +28,11 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     (acc, item) =>
       acc +
       ((item.discountPrice || item.pricePerMeter) * item.selectedMeters +
-        (item.addTailoringService ? 2500 : 0)) *
+        (item.stitchingPrice || 0)) *
         item.quantity,
     0,
   );
+  console.log("CART ITEMS:", items);
 
   // const handleCheckout = async () => {
   //   try {
@@ -151,11 +152,16 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                           {item.selectedColor}
                         </span>
                       </div>
-                      {item.addTailoringService && (
-                        <div className="mt-2 md:mt-3 flex items-center gap-1.5 md:gap-2 text-brand-earth">
-                          <i className="fa-solid fa-scissors text-[9px] md:text-[10px]"></i>
-                          <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest">
-                            Bespoke Tailoring Included
+                      {item.stitchingType && (
+                        <div className="mt-2 flex flex-col text-brand-earth">
+                          <div className="flex items-center gap-2 text-xs">
+                            <i className="fa-solid fa-scissors"></i>
+                            <span className="font-bold uppercase tracking-widest">
+                              {item.stitchingType}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-green-600 font-semibold">
+                            + ₹{item.stitchingPrice}
                           </span>
                         </div>
                       )}

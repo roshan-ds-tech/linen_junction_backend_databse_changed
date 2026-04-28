@@ -151,7 +151,7 @@ const Home: React.FC<HomeProps> = ({
         </div>
       </section>
 
-      <section
+      {/* <section
         id="categories"
         className="py-12 md:py-24 bg-brand-white/50 backdrop-blur-sm"
       >
@@ -204,7 +204,7 @@ const Home: React.FC<HomeProps> = ({
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
     </div>
   );
 };

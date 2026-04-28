@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "../assests/Logo.png"; // adjust path if needed
+import logo from "../assests/Logo2.png"; // adjust path if needed
 
 interface FooterProps {
   onHomeClick: () => void;
@@ -30,12 +30,12 @@ const Footer: React.FC<FooterProps> = ({
         <div className="space-y-4 premium-reveal flex flex-col items-center md:items-start">
           <button
             onClick={onHomeClick}
-            className="flex items-center gap-2 text-lg md:text-xl font-serif font-semibold md:font-bold text-brand-gold hover:text-brand-mint hover:scale-110 uppercase tracking-widest transition-all duration-500 transform active:scale-95"
+            className="flex items-center gap-1 text-lg md:text-xl font-serif font-semibold md:font-bold text-brand-gold hover:text-brand-mint hover:scale-110 uppercase tracking-widest transition-all duration-500 transform active:scale-95"
           >
             <img
               src={logo}
               alt="Linen Junction Logo"
-              className="h-10 md:h-12 w-auto object-contain"
+              className="h-12 md:h-14 w-auto object-contain"
             />
             <span className="leading-none">LINEN JUNCTION</span>
           </button>
@@ -52,7 +52,7 @@ const Footer: React.FC<FooterProps> = ({
           </p>
         </div>
 
-        <div className="premium-reveal stagger-1 flex flex-col items-center md:items-start">
+        {/* <div className="premium-reveal stagger-1 flex flex-col items-center md:items-start">
           <h3
             onClick={() => onCategoryClick("")}
             className="text-brand-mint font-bold mb-4 uppercase text-sm tracking-widest cursor-pointer transition-all duration-500 transform hover:scale-110 inline-block active:scale-95"
@@ -85,7 +85,7 @@ const Footer: React.FC<FooterProps> = ({
               Home Linen
             </li>
           </ul>
-        </div>
+        </div> */}
 
         <div className="premium-reveal stagger-2 flex flex-col items-center md:items-start">
           <h3
@@ -148,8 +148,7 @@ const Footer: React.FC<FooterProps> = ({
         </div>
       </div>
       <div className="mt-16 pt-8 border-t border-white/10 text-center text-[10px] text-brand-silver/40 uppercase tracking-widest">
-        © 2026 Linen Junction Private Limited. All Rights Reserved. <br />
-        Designed and Developed by Kushal Kuladeepa S N
+        © 2026 Linen Junction Private Limited. All Rights Reserved.
       </div>
     </footer>
   );

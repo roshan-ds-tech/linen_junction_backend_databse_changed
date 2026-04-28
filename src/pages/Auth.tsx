@@ -160,7 +160,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             variants={itemVariants}
             className="mt-12 text-center space-y-6"
           >
-            <div className="flex items-center justify-center gap-4">
+            {/* <div className="flex items-center justify-center gap-4">
               <div className="h-px w-8 bg-brand-silver/30"></div>
               <span className="text-[10px] font-bold text-brand-earth/30 uppercase tracking-widest">
                 Or Continue With
@@ -182,7 +182,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               >
                 <i className="fa-brands fa-apple text-lg"></i>
               </motion.button>
-            </div>
+            </div> */}
             <p className="text-[11px] text-brand-earth/50 font-medium">
               {isLogin
                 ? "Don't have a registry entry?"

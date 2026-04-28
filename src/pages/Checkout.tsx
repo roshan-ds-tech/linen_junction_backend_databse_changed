@@ -1,7 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState } from "react";
 import { CartItem, User } from "../types";
-
+let hasPlacedOrder = false;
 declare global {}
 
 interface CheckoutProps {
@@ -39,12 +39,14 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onComplete, user }) => {
     0,
   );
   const tailoringTotal = cart.reduce(
-    (acc, item) => acc + (item.addTailoringService ? 2500 : 0) * item.quantity,
+    (acc, item) => acc + (item.stitchingPrice || 0) * item.quantity,
     0,
   );
   const total = subtotal + tailoringTotal;
 
   const handlePlaceOrder = async () => {
+    if (hasPlacedOrder) return; // 🚨 GLOBAL BLOCK
+    hasPlacedOrder = true;
     try {
       if (!formData.name || !formData.phone || !formData.address) {
         alert("Please fill all details");
@@ -60,9 +62,17 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onComplete, user }) => {
         },
 
         items: cart.map((item) => ({
-          productId: item.id,
-          quantity: item.selectedMeters * item.quantity,
+          product_id: item.id,
+          quantity: item.quantity,
           price: item.discountPrice || item.pricePerMeter,
+
+          addTailoringService: item.addTailoringService || false,
+
+          stitchingType: item.stitchingType || null, // ✅ NEW
+          stitchingPrice: item.stitchingPrice || 0, // ✅ NEW
+
+          measurements: item.measurements || {},
+          selectedMeters: item.selectedMeters || 1,
         })),
 
         tailoring: cart.find((i) => i.addTailoringService)
@@ -75,20 +85,70 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onComplete, user }) => {
           : null,
       };
 
-      await fetch(`${API_URL}/api/orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(orderData),
-      });
+      // ✅ SAVE ORDER
+      // await fetch(`${API_URL}/api/orders`, {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify(orderData),
+      // });
 
-      alert("Order placed successfully 🎉");
+      // ✅ CREATE WHATSAPP MESSAGE
+      const message = `
+ *LINEN JUNCTION ORDER*
 
-      // ✅ clear cart properly
+Hi, I’ve placed an order. Please share payment link / QR.
+
+Name: ${formData.name}
+Phone: ${formData.phone}
+Address: ${formData.address}, ${formData.city} - ${formData.zip}
+
+ ITEMS:
+${cart
+  .map(
+    (item, i) => `
+${i + 1}. ${item.name}
+Qty: ${item.quantity}
+Meters: ${item.selectedMeters}
+Tailoring: ${
+      item.stitchingType
+        ? `${item.stitchingType} (₹${item.stitchingPrice})`
+        : "No"
+    }Measurements: ${
+      item.measurements
+        ? Object.entries(item.measurements)
+            .map(([key, val]) => `${key}: ${val}`)
+            .join(", ")
+        : "N/A"
+    }
+`,
+  )
+  .join("\n")}
+
+ Total: ₹${total}
+`;
+
+      // 🔴 PUT YOUR NUMBER HERE
+      const ownerPhone = "8660014255";
+
+      const whatsappURL = `https://wa.me/${ownerPhone}?text=${encodeURIComponent(
+        message,
+      )}`;
+
+      // Open WhatsApp in new tab
+      window.open(whatsappURL, "_blank");
+
+      // Clear cart immediately
       localStorage.setItem("linen_junction_cart", JSON.stringify([]));
 
-      window.location.href = "/";
+      // Optional: trigger UI refresh if you have state
+      onComplete(formData);
+
+      // Redirect after short delay
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1000);
     } catch (err) {
       console.error("Order failed ❌", err);
     }
@@ -270,9 +330,16 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onComplete, user }) => {
                         ₹
                         {(
                           (item.discountPrice || item.pricePerMeter) *
-                          item.selectedMeters
+                            item.selectedMeters +
+                          (item.stitchingPrice || 0)
                         ).toLocaleString()}
                       </p>
+
+                      {item.stitchingType && (
+                        <p className="text-[10px] text-brand-mint">
+                          ✂ {item.stitchingType} (+₹{item.stitchingPrice})
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}

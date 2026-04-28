@@ -1,6 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useRef } from "react";
 import { Product, CartItem, Measurements } from "../types";
+import { STITCHING_OPTIONS } from "../utils/stitchingConfig";
 
 interface ProductDetailsProps {
   product: Product;
@@ -22,7 +23,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   const [isHovering, setIsHovering] = useState(false);
   const [isZoomLocked, setIsZoomLocked] = useState(false);
   const imageRef = useRef<HTMLDivElement>(null);
-
+  const [selectedStitching, setSelectedStitching] = useState<any>(null);
   // const handleAddToCart = async () => {
   //   const meters = parseFloat(selectedMeters);
   //   <input
@@ -109,16 +110,28 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         !measurements.shoulder ||
         !measurements.length
       ) {
+        alert("Please fill all measurements");
+        return;
+      }
+
+      // 🔥 THIS IS THE MISSING PART
+      if (!selectedStitching) {
+        alert("Please select stitching type");
         return;
       }
     }
 
     onAddToCart({
       ...product,
-      product_id: product.id, // 🔥 ADD THIS (for backend reference
-      name: product.name, // 🔥 ADD THIS (for backend reference)
+      product_id: product.id,
+      name: product.name,
       selectedMeters: meters,
       addTailoringService: addTailoring,
+
+      // 🔥 NOW SAFE (no null anymore)
+      stitchingType: selectedStitching?.label,
+      stitchingPrice: selectedStitching?.price,
+
       measurements: addTailoring
         ? {
             chest: measurements.chest,
@@ -128,6 +141,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
             notes: measurements.notes || "",
           }
         : undefined,
+
       quantity,
     });
   };
@@ -302,10 +316,41 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                     onChange={() => setAddTailoring(!addTailoring)}
                     className="mt-1 w-4 h-4 md:w-5 md:h-5 accent-brand-gold rounded border-brand-silver"
                   />
+                  {addTailoring && (
+                    <div className="mt-4">
+                      <label className="text-xs font-bold uppercase text-brand-earth">
+                        Select Stitching Type
+                      </label>
+
+                      <select
+                        onChange={(e) => {
+                          const option = STITCHING_OPTIONS.find(
+                            (o) => o.label === e.target.value,
+                          );
+                          setSelectedStitching(option);
+                        }}
+                        className="w-full mt-2 p-2 border rounded"
+                      >
+                        <option value="">Choose stitching</option>
+                        {STITCHING_OPTIONS.map((opt) => (
+                          <option key={opt.label} value={opt.label}>
+                            {opt.label} (+₹{opt.price})
+                          </option>
+                        ))}
+                      </select>
+
+                      {selectedStitching && (
+                        <p className="text-green-600 text-sm mt-2">
+                          Stitching Cost: ₹{selectedStitching.price}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <div className="text-left">
                     <h5 className="text-[9px] md:text-[10px] font-bold text-brand-earth uppercase tracking-widest">
-                      Bespoke Tailoring Service (+ ₹2,500)
+                      Bespoke Tailoring Service (+ additional cost)
                     </h5>
+
                     <p className="text-[10px] md:text-xs text-brand-earth/60 mt-1 leading-relaxed">
                       Opt for our artisan tailoring. Provide your desired
                       measurements below for a perfect fit.
@@ -368,7 +413,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                     {(
                       (product.discountPrice || product.pricePerMeter) *
                         (parseFloat(selectedMeters) || 0) +
-                      (addTailoring ? 2500 : 0)
+                      (addTailoring ? selectedStitching?.price || 0 : 0)
                     ).toLocaleString()}
                   </span>
                 </button>

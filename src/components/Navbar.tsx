@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { User } from "../types";
 import { motion, AnimatePresence } from "motion/react";
-import logo from "../assests/Logo.png"; // adjust path if needed
+import logo from "../assests/Logo2.png";
 
 interface NavbarProps {
   cartCount: number;
@@ -69,12 +69,12 @@ const Navbar: React.FC<NavbarProps> = ({
               <div className="flex items-center">
                 <button
                   onClick={onHomeClick}
-                  className="flex items-center gap-1 text-lg md:text-2xl font-serif font-semibold md:font-bold tracking-widest text-brand-gold hover:text-brand-mint hover:scale-105 transition-all duration-500 transform active:scale-95 premium-reveal"
+                  className="flex items-center gap-1.5 text-base md:text-xl font-serif font-semibold md:font-bold tracking-wide text-brand-gold hover:text-brand-mint hover:scale-105 transition-all duration-500 transform active:scale-95 premium-reveal"
                 >
                   <img
                     src={logo}
                     alt="Linen Junction Logo"
-                    className="h-20 md:h-20 w-auto object-contain"
+                    className="h-15 md:h-15 w-auto object-contain"
                   />
                   <span>LINEN JUNCTION</span>
                 </button>
@@ -318,7 +318,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
             {/* Action Icons */}
             <div className="flex items-center space-x-5 premium-reveal stagger-3">
-              {(user?.role === "admin" || !isAuthenticated) && (
+              {isAuthenticated && user?.role === "admin" && (
                 <div className="relative">
                   <button
                     onClick={onAdminClick}
@@ -595,7 +595,7 @@ const Navbar: React.FC<NavbarProps> = ({
                   <i className="fa-regular fa-circle-user text-xl"></i>
                   {isAuthenticated ? "My Account" : "Login / Register"}
                 </button>
-                {(user?.role === "admin" || !isAuthenticated) && (
+                {isAuthenticated && user?.role === "admin" && (
                   <button
                     onClick={() => {
                       onAdminClick();

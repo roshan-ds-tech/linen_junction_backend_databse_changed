@@ -4,18 +4,18 @@ export interface Product {
   sku: string;
   pricePerMeter: number;
   category: string;
-
   clothType?: string; // 🔥 ADD THIS
 
   description?: string;
-
   image: string;
   images: string[]; // for backend URLs
 
   imageFiles?: File[]; // 🔥 ADD THIS (for upload)
 
   inventory: {
-    length: number;
+    id?: string;
+    color: string;
+    gsm?: string;
     stock: number;
   }[];
 
@@ -62,6 +62,8 @@ export interface TailoringJob {
   examples?: PhotoDetail[];
   finishedProductImage?: PhotoDetail;
   tailorName?: string;
+  stitchingType?: string | null;
+  stitchingPrice?: number;
 }
 
 export interface PhotoDetail {

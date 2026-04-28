@@ -21,6 +21,7 @@ const Shop: React.FC<ShopProps> = ({
   const [sortBy, setSortBy] = useState("featured");
   const [searchQuery, setSearchQuery] = useState(externalSearchQuery);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -37,6 +38,16 @@ const Shop: React.FC<ShopProps> = ({
       .then((res) => res.json())
       .then((data) => {
         setProducts(data);
+      })
+      .catch((err) => console.error(err));
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/cloth-types`)
+      .then((res) => res.json())
+      .then((data) => {
+        const names = data.map((c: any) => c.name);
+        setCategories(["All", ...names]);
       })
       .catch((err) => console.error(err));
   }, []);
@@ -66,7 +77,12 @@ const Shop: React.FC<ShopProps> = ({
     let result = [...products];
 
     if (category !== "All") {
-      result = result.filter((p) => p.category === category);
+      result = result.filter(
+        (p) =>
+          p.category &&
+          p.category.toLowerCase().trim() === category.toLowerCase().trim(),
+      );
+      console.log(products);
     }
 
     if (weight !== "All") {
@@ -144,39 +160,22 @@ const Shop: React.FC<ShopProps> = ({
                   By Weave Type
                 </h4>
                 <div className="space-y-2 md:space-y-4 flex flex-col items-center md:items-start">
-                  {["All", "Pure Linen", "Linen Blends", "Home Linen"].map(
-                    (cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => setCategory(cat)}
-                        className={`block w-full text-center md:text-left text-[10px] md:text-sm transition-all duration-300 transform hover:translate-x-1 relative md:pl-6 ${category === cat ? "text-brand-earth font-bold" : "text-brand-earth/60 hover:text-brand-earth"}`}
-                      >
-                        {category === cat && (
-                          <span className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 w-3 h-0.5 bg-brand-mint"></span>
-                        )}
-                        {cat}
-                      </button>
-                    ),
-                  )}
-                </div>
-              </section>
-
-              <section>
-                <h4 className="text-[8px] md:text-[10px] font-bold text-brand-earth uppercase tracking-[0.25em] mb-3 md:mb-6">
-                  By Fabric Weight
-                </h4>
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  {["All", "Lightweight", "Midweight", "Heavyweight"].map(
-                    (w) => (
-                      <button
-                        key={w}
-                        onClick={() => setWeight(w)}
-                        className={`px-2 md:px-4 py-1 md:py-2 text-[7px] md:text-[10px] font-bold tracking-widest uppercase border-2 transition-all duration-300 ${weight === w ? "bg-brand-earth text-brand-white border-brand-earth" : "bg-brand-white text-brand-earth border-brand-silver hover:border-brand-earth"}`}
-                      >
-                        {w}
-                      </button>
-                    ),
-                  )}
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setCategory(cat)}
+                      className={`block w-full text-center md:text-left text-[10px] md:text-sm transition-all duration-300 transform hover:translate-x-1 relative md:pl-6 ${
+                        category === cat
+                          ? "text-brand-earth font-bold"
+                          : "text-brand-earth/60 hover:text-brand-earth"
+                      }`}
+                    >
+                      {category === cat && (
+                        <span className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 w-3 h-0.5 bg-brand-mint"></span>
+                      )}
+                      {cat}
+                    </button>
+                  ))}
                 </div>
               </section>
             </div>
@@ -212,7 +211,6 @@ const Shop: React.FC<ShopProps> = ({
 
             <div className="flex md:grid md:grid-cols-2 xl:grid-cols-3 gap-8 md:gap-12 overflow-x-auto md:overflow-visible pb-8 md:pb-0 scrollbar-hide snap-x snap-mandatory">
               {filteredProducts.map((product, idx) => {
-
                 return (
                   <div
                     key={product.id}

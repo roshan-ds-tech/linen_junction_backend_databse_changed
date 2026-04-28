@@ -1,5 +1,3 @@
-const API_URL = import.meta.env.VITE_API_URL;
-
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Navbar from "./components/Navbar";
@@ -26,7 +24,8 @@ import CareArchive from "./pages/CareArchive";
 import TrackOrder from "./pages/TrackOrder";
 import OrderTrackingDetail from "./pages/OrderTrackingDetail";
 import { Product, CartItem, User, TailoringJob } from "./types";
-import { API_URL, createJob } from "./api";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const App: React.FC = () => {
   const [page, setPage] = useState<string>("home");
@@ -53,67 +52,10 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem("linen_junction_session") !== null;
   });
+
+  // tailoringJobs is now just passed through to AdminDashboard & OrderHistory.
+  // AdminDashboard owns the real fetch logic — App no longer duplicates it.
   const [tailoringJobs, setTailoringJobs] = useState<TailoringJob[]>([]);
-
-  // useEffect(() => {
-  //   const loadJobs = async () => {
-  //     try {
-  //       const jobs = await getJobs();
-
-  //       const formatted = jobs.map((job: any) => ({
-  //         id: job.id,
-  //         orderId: job.id,
-  //         customerName: job.customerName,
-  //         productName: job.productName,
-  //         productImage: "",
-  //         measurements: { chest: "", waist: "", shoulder: "", length: "" },
-  //         currentStatus: job.status,
-  //         statusHistory: [],
-  //         examples: [],
-  //       }));
-
-  //       setTailoringJobs(formatted);
-  //     } catch (err) {
-  //       console.error("Failed to load jobs", err);
-  //     }
-  //   };
-
-  //   loadJobs();
-  // }, []);
-
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/orders`);
-        const data = await res.json();
-
-        console.log("Fetched orders:", data);
-
-        const jobs = data.flatMap((order: any) =>
-          order.items
-            .filter((item: any) => item.addTailoringService)
-            .map((item: any) => ({
-              id: order.id,
-              orderId: order.id,
-              customerName: "Customer",
-              productName: item.name,
-              productImage: item.images?.[0] || "",
-              measurements: item.measurements || {},
-              fabricLength: item.selectedMeters,
-              currentStatus: "Fabric Received",
-              statusHistory: [],
-              examples: [],
-            })),
-        );
-
-        setTailoringJobs(jobs);
-      } catch (err) {
-        console.error("Failed to fetch orders ❌", err);
-      }
-    };
-
-    fetchOrders();
-  }, []);
 
   useEffect(() => {
     localStorage.setItem("linen_junction_cart", JSON.stringify(cart));
@@ -123,7 +65,6 @@ const App: React.FC = () => {
     setUser(userData);
     setIsAuthenticated(true);
     localStorage.setItem("linen_junction_session", JSON.stringify(userData));
-    if (page === "auth") setPage("checkout");
 
     if (userData.role === "admin") {
       setPage("admin");
@@ -154,24 +95,23 @@ const App: React.FC = () => {
           i.selectedMeters === item.selectedMeters &&
           i.selectedColor === item.selectedColor,
       );
-
       if (existing >= 0) {
         const newCart = [...prev];
         newCart[existing].quantity += item.quantity;
         return newCart;
       }
-
       return [...prev, item];
     });
-
     setIsCartOpen(true);
   };
 
   const quickAdd = (product: Product, meters: string) => {
     const item: CartItem = {
       ...product,
-      selectedMeters: parseFloat(meters || product.availableLengths[0]),
-      selectedColor: product.colors[0],
+      selectedMeters: parseFloat(
+        meters || product.availableLengths?.[0] || "1",
+      ),
+      selectedColor: product.colors?.[0] || "",
       addTailoringService: false,
       quantity: 1,
     };
@@ -197,79 +137,93 @@ const App: React.FC = () => {
     color: string,
     delta: number,
   ) => {
-    setCart((prev) => {
-      return prev.map((item) => {
+    setCart((prev) =>
+      prev.map((item) => {
         if (
           item.id === id &&
           item.selectedMeters === meters &&
           item.selectedColor === color
         ) {
-          const newQty = Math.max(1, item.quantity + delta);
-          return { ...item, quantity: newQty };
+          return { ...item, quantity: Math.max(1, item.quantity + delta) };
         }
         return item;
-      });
-    });
+      }),
+    );
   };
 
+  // FIX: completeOrder now actually posts to the DB.
+  // Previously it only called createJob() (a separate unknown API) and never
+  // hit POST /api/orders, so nothing was saved to SQLite.
   const completeOrder = async (orderDetails: {
     email: string;
     phone: string;
     name: string;
+    address?: string;
     measurements?: Record<string, string>;
   }) => {
-    // Simulate notification sending
-    console.log("Sending Order Confirmation Email to:", orderDetails.email);
-    console.log("Sending Order Confirmation SMS to:", orderDetails.phone);
+    try {
+      // Build items payload — map CartItem to what the server expects.
+      // Key fix: server now accepts `id` as the product identifier (matches CartItem),
+      // and reads addTailoringService + measurements from each item.
+      const itemsPayload = cart.map((item) => ({
+        id: item.id, // server reads this as product_id
+        product_id: item.id, // explicit fallback
+        quantity: item.quantity,
+        price: item.pricePerMeter * item.selectedMeters,
+        selectedMeters: item.selectedMeters,
+        addTailoringService: item.addTailoringService || false,
+        measurements: item.measurements || {},
+      }));
 
-    // In a real app, you would call an API here:
-    // await fetch('/api/notify', { method: 'POST', body: JSON.stringify(orderDetails) });
+      const hasTailoring = cart.some((i) => i.addTailoringService);
 
-    // Sync order to history if user is logged in
-    if (user) {
-      const newJob: TailoringJob = {
-        id: `TJ-${Math.floor(Math.random() * 1000)}`,
-        orderId: `ORD-${Math.floor(Math.random() * 10000)}`,
-        customerName: user.name,
-        productName: cart[0]?.name || "Textile Selection",
-        productImage: cart[0]?.images[0] || "",
-        measurements: orderDetails.measurements || {
-          chest: "0",
-          waist: "0",
-          shoulder: "0",
-          length: "0",
+      const body = {
+        customer: {
+          name: orderDetails.name,
+          phone: orderDetails.phone,
+          email: orderDetails.email,
+          address: orderDetails.address || "",
         },
-        currentStatus: "Order Received",
-        statusHistory: [
-          {
-            status: "Order Received",
-            timestamp: new Date().toISOString(),
-            note: "Registry entry created.",
-          },
-        ],
-        examples: cart[0]?.images || [],
+        items: itemsPayload,
+        // Top-level tailoring block (for backward compat with old admin code).
+        // Per-item tailoring is now also stored via order_items.add_tailoring.
+        tailoring: hasTailoring
+          ? {
+              measurements: orderDetails.measurements || {},
+              style: "",
+              notes: "",
+            }
+          : null,
       };
-      setTailoringJobs((prev) => [newJob, ...prev]);
-      await createJob({
-        id: newJob.id,
-        customerName: newJob.customerName,
-        productName: newJob.productName,
-        status: "Fabric Sourcing & Inspection",
-        tailor: "Unassigned",
+
+      const res = await fetch(`${API_URL}/api/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Order failed");
+      }
+
+      const { orderId } = await res.json();
+      console.log("✅ Order saved to DB:", orderId);
+
+      setCart([]);
+      setPage("orders");
+      window.scrollTo(0, 0);
+      alert(
+        `Order Confirmed! Confirmation sent to ${orderDetails.email} and ${orderDetails.phone}.`,
+      );
+    } catch (err: any) {
+      console.error("Order error:", err);
+      alert("❌ Order failed: " + err.message);
     }
-
-    setCart([]);
-    setPage("orders");
-    window.scrollTo(0, 0);
-
-    // Show a more professional notification
-    const notificationMsg = `Order Confirmed! A notification has been dispatched to ${orderDetails.email} and ${orderDetails.phone}.`;
-    alert(notificationMsg);
   };
 
-  const navigateToShop = (category?: string) => {
-    setCategoryFilter(category);
+  const navigateToShop = () => {
+    setCategoryFilter(undefined); // ❌ REMOVE FILTER
     setSearchQuery("");
     setScrollToId(undefined);
     setPage("shop");
@@ -291,12 +245,6 @@ const App: React.FC = () => {
 
   const navigateToPage = (target: string) => {
     setPage(target);
-    window.scrollTo(0, 0);
-  };
-
-  const handleCheckout = () => {
-    setIsCartOpen(false);
-    setPage(isAuthenticated ? "checkout" : "auth");
     window.scrollTo(0, 0);
   };
 
@@ -471,12 +419,32 @@ const App: React.FC = () => {
         onRemove={removeFromCart}
         onUpdateQuantity={updateCartQuantity}
         onCheckout={() => {
-          setIsCartOpen(false); // close cart
-          setPage("checkout"); // 🔥 GO TO CHECKOUT PAGE
+          setIsCartOpen(false);
+          setPage("checkout");
         }}
       />
 
-      <CareAssistant isOpen={isAssistantOpen} setIsOpen={setIsAssistantOpen} />
+      <button
+        onClick={() => {
+          const phone = "8660014255";
+          const message = encodeURIComponent(
+            "Hi, I'm interested in your linen fabrics.",
+          );
+          window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
+        }}
+        className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-full shadow-xl transition-all duration-300 hover:scale-110 flex items-center gap-2"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 32 32"
+          width="20"
+          height="20"
+          fill="white"
+        >
+          <path d="M16.04 2.003c-7.732 0-14 6.268-14 14 0 2.469.646 4.883 1.875 7.01L2 30l7.197-1.884A13.94 13.94 0 0 0 16.04 30c7.732 0 14-6.268 14-14s-6.268-14-14-14zm0 25.5a11.47 11.47 0 0 1-5.838-1.6l-.417-.247-4.27 1.117 1.14-4.157-.27-.43a11.48 11.48 0 1 1 9.655 5.317zm6.317-8.617c-.345-.172-2.04-1.007-2.357-1.122-.316-.115-.547-.172-.777.173s-.892 1.122-1.094 1.354c-.202.23-.403.259-.748.086-.345-.173-1.458-.537-2.778-1.712-1.026-.915-1.72-2.045-1.922-2.39-.201-.345-.021-.53.151-.702.156-.155.345-.403.518-.604.173-.202.23-.345.345-.575.115-.23.057-.431-.029-.604-.086-.172-.777-1.875-1.065-2.567-.28-.672-.566-.58-.777-.59l-.663-.011c-.23 0-.604.086-.92.431-.316.345-1.208 1.18-1.208 2.877 0 1.697 1.237 3.335 1.41 3.565.172.23 2.433 3.717 5.897 5.215.824.356 1.466.568 1.967.727.826.263 1.578.226 2.173.137.663-.099 2.04-.834 2.328-1.64.287-.805.287-1.495.201-1.64-.086-.144-.316-.23-.662-.403z" />
+        </svg>
+        WhatsApp
+      </button>
     </div>
   );
 };
