@@ -880,117 +880,132 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
 
-        {/* 📦 MAIN GRID */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 🧾 PRODUCT LIST */}
-          <div className="bg-white rounded-[30px] p-6 shadow-xl border space-y-4 max-h-[600px] overflow-y-auto">
-            {filteredProducts.map((p, index) => (
-              <div
-                key={`${p.id}-${index}`}
-                onClick={() => handleSelectProduct(p)}
-                className={`p-4 rounded-2xl cursor-pointer flex gap-4 items-center transition ${
-                  selectedProduct?.id === p.id
-                    ? "bg-brand-earth text-white"
-                    : "hover:bg-brand-silver/20"
-                }`}
+        {showAddForm && (
+          <div className="bg-white p-5 rounded-xl shadow border space-y-3">
+            <h3 className="font-bold">Add New Fabric</h3>
+            
+            <input
+              placeholder="Product Name"
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, name: e.target.value })
+              }
+              className="border p-2 w-full"
+            />
+
+            <input
+              placeholder="Price per meter"
+              type="number"
+              onChange={(e) =>
+                setNewProduct({
+                  ...newProduct,
+                  pricePerMeter: Number(e.target.value),
+                })
+              }
+              className="border p-2 w-full"
+            />
+
+            <select
+  value={newProduct.category || ""}
+  onChange={(e) =>
+    setNewProduct({ ...newProduct, category: e.target.value })
+  }
+  className="border p-2 w-full"
+>
+  <option value="">Select Category</option>
+
+  {categories.length === 0 ? (
+    <option disabled>Loading...</option>
+  ) : (
+    categories.map((cat, i) => (
+      <option key={i} value={cat}>
+        {cat}
+      </option>
+    ))
+  )}
+</select>
+
+            <input
+              placeholder="Add new category"
+              className="border p-2 w-full"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  fetch(`${API_URL}/api/cloth-types`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: e.currentTarget.value }),
+                  }).then(() => {
+                    alert("Category added ✅");
+                    window.location.reload();
+                  });
+                }
+              }}
+            />
+
+            <textarea
+              placeholder="Short description (e.g. soft, breathable linen for summer wear)"
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, description: e.target.value })
+              }
+              className="border p-2 w-full rounded"
+              rows={2}
+            />
+
+            <input
+              placeholder="Total Length (meters)"
+              type="number"
+              onChange={(e) =>
+                setNewProduct({
+                  ...newProduct,
+                  totalLength: Number(e.target.value),
+                })
+              }
+              className="border p-2 w-full"
+            />
+
+            <input
+              type="file"
+              onChange={(e) =>
+                setNewProduct({
+                  ...newProduct,
+                  imageFiles: e.target.files ? Array.from(e.target.files) : [],
+                })
+              }
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleAddProduct}
+                className="bg-green-600 text-white px-4 py-2 rounded"
               >
-                <img
-                  src={
-                    p.image
-                      ? `${API_URL}${p.image}`
-                      : "https://via.placeholder.com/100"
-                  }
-                  className="w-16 h-16 object-cover rounded-xl shadow"
-                />
+                Save
+              </button>
 
-                <div className="flex-1">
-                  <p className="font-bold">{p.name}</p>
-
-                  {/* 🔥 CLOTH TAG */}
-                  <span className="text-xs bg-brand-gold/20 px-2 py-1 rounded-full">
-                    {p.category || "Unknown"}
-                  </span>
-
-                  <p className="text-xs opacity-60 mt-1">
-                    ₹{p.pricePerMeter}/m
-                  </p>
-                </div>
-              </div>
-            ))}
-
-            {filteredProducts.length === 0 && (
-              <p className="text-gray-400 text-center">No products found</p>
-            )}
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="bg-gray-300 px-4 py-2 rounded"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
+        )}
 
-          {/* ✏️ EDIT PANEL */}
-          <div className="lg:col-span-2 bg-white rounded-[30px] p-8 shadow-xl border">
-            {selectedProduct ? (
-              <>
-                <div className="flex justify-between items-center mb-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h2 className="text-2xl font-serif font-bold">
-                        {selectedProduct.name}
-                      </h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProducts.map((p) => (
+            <div key={p.id} className="bg-white p-5 rounded-2xl shadow border">
+              <img
+                src={p.image ? `${API_URL}${p.image}` : ""}
+                className="w-full h-40 object-cover rounded-xl mb-3"
+              />
 
-                      <span className="bg-brand-earth text-brand-gold px-3 py-1 rounded-full text-xs">
-                        {selectedProduct.category}
-                      </span>
-                    </div>
-
-                    {/* 🔥 DELETE BUTTON */}
-                    <button
-                      onClick={() => handleDeleteProduct(selectedProduct.id)}
-                      className="bg-red-500 text-white px-4 py-2 rounded-xl text-sm hover:scale-105 transition"
-                    >
-                      Delete
-                    </button>
-                  </div>
-
-                  <span className="bg-brand-earth text-brand-gold px-3 py-1 rounded-full text-xs">
-                    {selectedProduct.category}
-                  </span>
-                </div>
-
-                {/* INVENTORY */}
-                <div className="space-y-4">
-                  {inventory.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center bg-brand-silver/10 p-4 rounded-2xl"
-                    >
-                      <div>
-                        <p className="font-semibold">{item.color}</p>
-                        <p className="text-xs opacity-50">
-                          {item.length} meter
-                        </p>
-                      </div>
-
-                      <input
-                        type="number"
-                        value={item.stock}
-                        onChange={(e) => {
-                          const updated = [...inventory];
-                          updated[index].stock = Number(e.target.value);
-                          setInventory(updated);
-                        }}
-                        className="border px-3 py-2 rounded-lg w-24"
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                <input
-                  value={selectedProduct.name}
-                  onChange={(e) =>
-                    setSelectedProduct({
-                      ...selectedProduct,
-                      name: e.target.value,
-                    })
-                  }
-                  className="border p-2 w-full mb-3"
-                />
+              {/* EDITABLE FIELDS */}
+              <input
+                value={p.name}
+                onChange={(e) =>
+                  updateProductField(p.id, "name", e.target.value)
+                }
+                className="font-bold text-lg w-full mb-1"
+              />
 
                 <input
                   type="number"
