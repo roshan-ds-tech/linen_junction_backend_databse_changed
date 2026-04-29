@@ -1,8 +1,12 @@
 {
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/src/home.tsx"
+  "experimentalServices": {
+    "frontend": {
+      "routePrefix": "/",
+      "framework": "vite"
+    },
+    "backend": {
+      "entrypoint": "backend",
+      "routePrefix": "/_/backend"
     }
-  ]
+  }
 }
