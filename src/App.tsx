@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { API_URL } from "./config";
 import { motion, AnimatePresence } from "motion/react";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -25,7 +26,7 @@ import TrackOrder from "./pages/TrackOrder";
 import OrderTrackingDetail from "./pages/OrderTrackingDetail";
 import { Product, CartItem, User, TailoringJob } from "./types";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://linen-junction-new-final.onrender.com";
+
 
 const App: React.FC = () => {
   const [page, setPage] = useState<string>("home");

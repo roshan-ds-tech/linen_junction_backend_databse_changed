@@ -38,7 +38,8 @@
 //   if (!res.ok) throw new Error("Failed to update job");
 // };
 
-const API = import.meta.env.VITE_API_URL || "https://linen-junction-new-final.onrender.com";
+import { API_URL } from "./config";
+const API = API_URL;
 
 // 🧵 CREATE JOB
 export const createJob = async (job: any) => {
@@ -78,7 +79,8 @@ export const updateJob = async (
   if (!res.ok) throw new Error("Failed to update job");
 };
 
-export const API_URL = import.meta.env.VITE_API_URL || "https://linen-junction-new-final.onrender.com";
+// API_URL is re-exported from config
+// export const API_URL is already imported above
 
 export const safeFetch = async (url: string, options?: any) => {
   try {

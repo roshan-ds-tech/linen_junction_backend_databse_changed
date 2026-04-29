@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "https://linen-junction-new-final.onrender.com";
+import { API_URL } from "../config";
 import React, { useState, useRef } from "react";
 import { Product, CartItem, Measurements } from "../types";
 import { STITCHING_OPTIONS } from "../utils/stitchingConfig";
