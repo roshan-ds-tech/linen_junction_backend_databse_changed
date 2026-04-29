@@ -38,7 +38,7 @@
 //   if (!res.ok) throw new Error("Failed to update job");
 // };
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API = import.meta.env.VITE_API_URL || "https://linen-junction-new-final.onrender.com";
 
 // 🧵 CREATE JOB
 export const createJob = async (job: any) => {
@@ -78,7 +78,7 @@ export const updateJob = async (
   if (!res.ok) throw new Error("Failed to update job");
 };
 
-export const API_URL = import.meta.env.VITE_API_URL;
+export const API_URL = import.meta.env.VITE_API_URL || "https://linen-junction-new-final.onrender.com";
 
 export const safeFetch = async (url: string, options?: any) => {
   try {

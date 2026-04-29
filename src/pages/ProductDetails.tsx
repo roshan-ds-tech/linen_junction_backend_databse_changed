@@ -70,7 +70,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   //   });
   // };
   // 🔥 Deduct inventory
-  //   await fetch("http://localhost:5000/api/inventory/deduct", {
+  //   await fetch(`${API_URL}/api/inventory/deduct`, {
   //     method: "POST",
   //     headers: {
   //       "Content-Type": "application/json",
