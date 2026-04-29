@@ -3,6 +3,3 @@ backend/node_modules
 .env
 backend/.env
 dist
-database.db
-backend/database.db
-backend/database/database.db
