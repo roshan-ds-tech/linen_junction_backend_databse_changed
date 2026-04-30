@@ -19,8 +19,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const ADMIN_EMAIL = "admin@linen.com";
-    const ADMIN_PASSWORD = "admin123";
+    const ADMIN_EMAIL = "UshaRaju@Lj";
+    const ADMIN_PASSWORD = "LINEN2024@junction";
 
     // 🔐 ADMIN LOGIN CHECK
     if (formData.email === ADMIN_EMAIL) {
