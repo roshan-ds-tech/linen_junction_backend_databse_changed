@@ -26,7 +26,7 @@ const Footer: React.FC<FooterProps> = ({
 }) => {
   return (
     <footer className="bg-brand-earth text-brand-silver pt-12 md:pt-16 pb-8 border-t border-brand-mint/10 text-center md:text-left">
-      <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
+      <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
         <div className="space-y-4 premium-reveal flex flex-col items-center md:items-start">
           <button
             onClick={onHomeClick}
@@ -46,13 +46,87 @@ const Footer: React.FC<FooterProps> = ({
           >
             LINEN JUNCTION
           </h2> */}
-          <p className="text-sm text-brand-silver/70 leading-relaxed max-w-xs md:max-w-none">
-            Supplying the world's finest organic flax yardage. Sustainably
-            loomed, ethically sourced, and designed for bespoke excellence.
-          </p>
+          <div className="space-y-3 max-w-xs md:max-w-sm">
+            <h4
+              className="text-base md:text-lg font-serif text-brand-gold leading-snug"
+              text-align="center"
+            >
+              Luxury in Every Thread
+            </h4>
+
+            <p className="text-sm text-brand-silver/70 leading-relaxed">
+              Precision-woven organic flax, curated for timeless silhouettes and
+              bespoke expression.
+            </p>
+
+            <p className="text-xs text-brand-silver/40 italic">
+              Designed to be worn, remembered, and refined.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4 mt-4">
+            {[
+              {
+                icon: "fa-instagram",
+                link: "https://www.instagram.com/linenjunction.store?igsh=MTRqMWNtNmVzd2Nveg==",
+              },
+              {
+                icon: "fa-facebook-f",
+                link: "https://facebook.com",
+              },
+              // {
+              //   icon: "fa-x-twitter",
+              //   link: "https://twitter.com",
+              // },
+              {
+                icon: "fa-whatsapp",
+                link: "https://wa.me/918660014255",
+              },
+            ].map((social, i) => (
+              <a
+                key={i}
+                href={social.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 flex items-center justify-center rounded-full border border-brand-gold/20 text-brand-gold hover:bg-brand-gold hover:text-brand-earth hover:scale-110 transition-all duration-300 shadow-md"
+              >
+                <i className={`fa-brands ${social.icon}`}></i>
+              </a>
+            ))}
+          </div>
         </div>
 
-        {/* <div className="premium-reveal stagger-1 flex flex-col items-center md:items-start">
+        <div className="premium-reveal stagger-1 flex flex-col items-center md:items-start">
+          <h3 className="text-brand-mint font-bold mb-4 uppercase text-sm tracking-widest">
+            VISIT US
+          </h3>
+
+          <ul className="space-y-3 text-sm text-brand-silver/70 max-w-xs">
+            <li>
+              <a
+                href="https://www.google.com/maps?q=58,+1st+Main+Rd,+Ramachandrapuram,+Rajajinagar,+Bengaluru+560021"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-2 hover:text-brand-gold transition-all duration-300 group"
+              >
+                <i className="fa-solid fa-location-dot mt-[3px] text-brand-gold"></i>
+
+                <span>
+                  58, 1st Main Rd,
+                  <br />
+                  Ramachandrapuram, Rajajinagar,
+                  <br />
+                  Bengaluru – 560021
+                  <span className="block text-[10px] text-brand-gold opacity-0 group-hover:opacity-100 transition-all duration-300 mt-1">
+                    View on Maps →
+                  </span>
+                </span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div className="premium-reveal stagger-1 flex flex-col items-center md:items-start">
           <h3
             onClick={() => onCategoryClick("")}
             className="text-brand-mint font-bold mb-4 uppercase text-sm tracking-widest cursor-pointer transition-all duration-500 transform hover:scale-110 inline-block active:scale-95"
@@ -85,7 +159,7 @@ const Footer: React.FC<FooterProps> = ({
               Home Linen
             </li>
           </ul>
-        </div> */}
+        </div>
 
         <div className="premium-reveal stagger-2 flex flex-col items-center md:items-start">
           <h3

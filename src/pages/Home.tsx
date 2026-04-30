@@ -54,18 +54,18 @@ const Home: React.FC<HomeProps> = ({
         <div className="relative max-w-7xl mx-auto px-6 md:px-12 lg:px-16 w-full">
           <div className="max-w-2xl text-center md:text-left">
             <h4 className="text-brand-earth font-bold tracking-[0.3em] uppercase text-[10px] md:text-sm mb-4 premium-reveal stagger-1">
-              Artisan Textile Mill
+              Luxury in Every Thread
             </h4>
             <h1 className="text-3xl md:text-7xl font-serif text-brand-earth leading-tight mb-6 md:mb-8 premium-reveal stagger-2">
               The Raw Beauty of{" "}
               <span className="text-brand-earth italic underline decoration-brand-mint underline-offset-8">
-                Pure Linen
+                Pure Linen.
               </span>{" "}
-              Yardage.
+              {/* Yardage. */}
             </h1>
             <p className="text-brand-earth/80 text-sm md:text-lg mb-8 md:mb-10 leading-relaxed font-light premium-reveal stagger-3">
               We provide the soul of the garment. Ethically woven organic flax
-              for your bespoke tailoring and home projects.
+              for your bespoke tailoring projects.
             </p>
             <div className="flex flex-wrap justify-center md:justify-start gap-3 md:gap-4 premium-reveal stagger-4">
               <button

@@ -185,7 +185,7 @@ const Shop: React.FC<ShopProps> = ({
           <main className="flex-1 overflow-hidden">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 md:mb-16 gap-3 md:gap-6 bg-brand-white/80 backdrop-blur-md p-4 md:p-8 rounded-xl md:rounded-[40px] border border-brand-silver premium-reveal stagger-2 shadow-sm text-center md:text-left">
               <p className="text-[7px] md:text-[10px] text-brand-earth font-bold uppercase tracking-[0.2em]">
-                Registry Manifest: {filteredProducts.length} Swatches found
+                Registry Manifest: {filteredProducts.length} Matches found
               </p>
               <div className="flex items-center space-x-4 md:space-x-8">
                 <span className="text-[7px] md:text-[10px] text-brand-earth/50 font-bold uppercase tracking-widest hidden md:inline">
