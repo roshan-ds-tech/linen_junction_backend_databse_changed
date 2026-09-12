@@ -1,19 +1,10 @@
-import { API_URL } from "../config";
+import { API_URL, imageUrl } from "../config";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { io, Socket } from "socket.io-client";
 import { Product, TailoringJob } from "../types";
 import TailoringProgressBar from "../components/TailoringProgressBar";
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-// ─── Socket singleton (stable across re-renders) ─────────────────────────────
-let socketInstance: Socket | null = null;
-const getSocket = (): Socket => {
-  if (!socketInstance || !socketInstance.connected) {
-    socketInstance = io(API_URL, { autoConnect: true });
-  }
-  return socketInstance;
-};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AdminDashboardProps {
@@ -29,13 +20,7 @@ interface AnalyticsState {
   avgOrderValue: number;
 }
 
-const STATUS_FLOW = [
-  "Order Received",
-  "Fabric Cutting",
-  "Stitching",
-  "Quality Check",
-  "Dispatched",
-];
+const STATUS_FLOW = ["Order Received", "Cutting", "Stitching", "Completed"];
 
 const TAB_CONFIG = [
   { id: "tailor-unit", label: "Tailor Unit", icon: "fa-scissors" },
@@ -94,8 +79,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [savingProductId, setSavingProductId] = useState<string | null>(null);
 
-  const socketRef = useRef<Socket | null>(null);
-
   // ── Stable fetch helpers ──────────────────────────────────────────────────
   const fetchProducts = useCallback(async () => {
     setLoadingProducts(true);
@@ -153,7 +136,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     fetchCategories();
   }, [fetchProducts, fetchOrders, fetchCategories]);
 
-  const fetchTailoringJobs = async () => {
+  const fetchTailoringJobs = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/tailoring/jobs`);
       const raw = await res.json();
@@ -183,10 +166,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         );
 
         return {
-          id: job.id,
+          ...job,
           stitchingType,
           stitchingPrice,
           orderId: job.order_id,
+          priority: job.priority || "medium",
 
           productName: product?.name || "Unknown Product",
           customerName: order?.customer?.name || "Unknown Customer",
@@ -214,11 +198,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     } catch (err) {
       console.error("Tailoring fetch error:", err);
     }
-  };
+  }, [orders, products]);
 
   useEffect(() => {
     fetchTailoringJobs();
-  }, [orders.length, products.length]);
+  }, [orders.length, products.length, fetchTailoringJobs]);
 
   const handleStatusClick = (job: any, status: string) => {
     let currentStatus = job.currentStatus;
@@ -263,7 +247,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         const day = new Date(order.created_at || Date.now()).getDay();
         weekly[day] += orderTotal;
       }
-      if (order.tailoring) tailoring++;
+      if (order.items?.some((i: any) => i.addTailoringService)) tailoring++;
 
       if (order.items && Array.isArray(order.items)) {
         order.items.forEach((item: any) => {
@@ -292,25 +276,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setWeeklyData(weekly);
   }, [orders, products]);
 
-  // ── Socket setup: real-time updates ──────────────────────────────────────
+  // ── Polling: replaces Socket.io for real-time updates ─────────────────────
+  const fetchLogs = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/logs`);
+      const data = await res.json();
+      setLogs(data);
+    } catch (err) {
+      console.error("Logs fetch error:", err);
+    }
+  }, []);
+
   useEffect(() => {
-    const socket = getSocket();
-    socketRef.current = socket;
-
-    socket.on("log", (msg: string) => {
-      setLogs((prev) => [msg, ...prev.slice(0, 9)]);
-    });
-
-    // Real-time order status push from server
-    socket.on("order:update", () => {
+    const interval = setInterval(() => {
       fetchOrders();
-    });
+      fetchTailoringJobs();
+      fetchLogs();
+    }, 15000); // Poll every 15 seconds
 
-    return () => {
-      socket.off("log");
-      socket.off("order:update");
-    };
-  }, [fetchOrders]);
+    return () => clearInterval(interval);
+  }, [fetchOrders, fetchLogs, fetchTailoringJobs]);
 
   // ── Product helpers ───────────────────────────────────────────────────────
   const updateProductField = (id: string, field: string, value: any) => {
@@ -328,7 +313,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         body: JSON.stringify(product),
       });
       if (!res.ok) throw new Error("Update failed");
-      socketRef.current?.emit("log", `📦 Product "${product.name}" updated`);
     } catch (err) {
       console.error(err);
       alert("Save failed ❌");
@@ -355,7 +339,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       formData.append("pricePerMeter", String(newProduct.pricePerMeter || 0));
       formData.append("category", String(newProduct.category || "").trim());
       formData.append("description", newProduct.description || "");
-      console.log("CATEGORY SENT:", newProduct.category);
 
       if (newProduct.imageFiles?.[0]) {
         formData.append("image", newProduct.imageFiles[0]);
@@ -372,9 +355,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       await fetchProducts();
 
       setShowAddForm(false);
-    } catch (err) {
+      setNewProduct({
+        name: "",
+        sku: "",
+        pricePerMeter: 0,
+        category: "",
+        description: "",
+        images: [],
+      });
+    } catch (err: any) {
       console.error("Add product error:", err);
-      alert(err.message || "Failed to add product");
+      alert(err?.message || "Failed to add product");
     }
   };
 
@@ -387,7 +378,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Delete failed");
       setProducts((prev) => prev.filter((p) => p.id !== id));
-      socketRef.current?.emit("log", `🗑 Product ${id} deleted`);
     } catch (err: any) {
       alert("❌ " + err.message);
     }
@@ -399,7 +389,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     try {
       await fetch(`${API_URL}/api/orders/${id}`, { method: "DELETE" });
       setOrders((prev) => prev.filter((o) => o.id !== id));
-      socketRef.current?.emit("log", `🗑 Order ${id} deleted`);
     } catch {
       alert("Delete failed ❌");
     }
@@ -411,43 +400,90 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   // ── Tailoring helpers ─────────────────────────────────────────────────────
+  // const updateJobStatus = async (jobId: string, newStatus: string) => {
+  //   const job = tailoringJobs.find((j) => j.id === jobId);
+  //   if (!job) return;
+
+  //   const currentIndex = STATUS_FLOW.indexOf(job.currentStatus);
+  //   const nextIndex = STATUS_FLOW.indexOf(newStatus);
+
+  //   // ❌ prevent skipping
+  //   if (nextIndex > currentIndex + 1) {
+  //     alert("⚠️ Complete previous step first");
+  //     return;
+  //   }
+
+  //   // ❌ prevent going backward
+  //   if (nextIndex < currentIndex) {
+  //     alert("⚠️ Cannot go backwards");
+  //     return;
+  //   }
+
+  //   await fetch(`${API_URL}/api/tailoring/${jobId}/status`, {
+  //     method: "PUT",
+  //     headers: { "Content-Type": "application/json" },
+  //     body: JSON.stringify({
+  //       status: newStatus,
+  //       tailor: currentTailor,
+  //     }),
+  //   });
+  //   await fetchTailoringJobs();
+  // };
+
   const updateJobStatus = async (jobId: string, newStatus: string) => {
     const job = tailoringJobs.find((j) => j.id === jobId);
+
     if (!job) return;
 
     const currentIndex = STATUS_FLOW.indexOf(job.currentStatus);
     const nextIndex = STATUS_FLOW.indexOf(newStatus);
 
-    // ❌ prevent skipping
     if (nextIndex > currentIndex + 1) {
-      alert("⚠️ Complete previous step first");
+      alert("Complete previous step first");
       return;
     }
 
-    // ❌ prevent going backward
     if (nextIndex < currentIndex) {
-      alert("⚠️ Cannot go backwards");
+      alert("Cannot go backward");
       return;
     }
 
-    await fetch(`${API_URL}/api/tailoring/${jobId}/status`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        status: newStatus,
-        tailor: currentTailor,
-      }),
-    });
-    await fetchTailoringJobs();
+    try {
+      const res = await fetch(`${API_URL}/api/tailoring/${jobId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          tailor: currentTailor,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Status update failed");
+      }
+
+      await fetchTailoringJobs();
+    } catch (err) {
+      console.error(err);
+      alert("Status update failed");
+    }
   };
 
   const handleDeleteJob = async (jobId: string) => {
+    if (!window.confirm("Delete this tailoring job?")) return;
+
     try {
-      await fetch(`${API_URL}/api/tailoring/${jobId}`, {
+      const res = await fetch(`${API_URL}/api/tailoring/${jobId}`, {
         method: "DELETE",
       });
 
-      fetchTailoringJobs();
+      const data = await res.json();
+
+      console.log(data);
+
+      await fetchTailoringJobs();
     } catch (err) {
       console.error(err);
     }
@@ -487,12 +523,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     fetchTailoringJobs();
   };
 
-  const removeFinalImage = (jobId: string) => {
-    setTailoringJobs((prev) =>
-      prev.map((job) =>
-        job.id === jobId ? { ...job, finishedProductImage: undefined } : job,
-      ),
-    );
+  const removeFinalImage = async (jobId: string) => {
+    const job = tailoringJobs.find((j) => j.id === jobId);
+    const imageId = job?.finishedProductImage?.id;
+    if (imageId) {
+      try {
+        await fetch(`${API_URL}/api/tailoring/image/${imageId}`, {
+          method: "DELETE",
+        });
+        await fetchTailoringJobs();
+      } catch (err) {
+        console.error("Failed to remove image", err);
+      }
+    } else {
+      // Fallback: update local state if no image ID
+      setTailoringJobs((prev) =>
+        prev.map((j) =>
+          j.id === jobId ? { ...j, finishedProductImage: undefined } : j,
+        ),
+      );
+    }
   };
 
   // ─── Render: Analytics ────────────────────────────────────────────────────
@@ -717,7 +767,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <img
                 src={
                   p.image
-                    ? `${API_URL}${p.image}`
+                    ? imageUrl(p.image)
                     : "https://placehold.co/400x200?text=No+Image"
                 }
                 className="w-full h-40 object-cover rounded-xl mb-3"
@@ -805,11 +855,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const filteredJobs =
       filterStatus === "All"
         ? tailoringJobs
-        : tailoringJobs.filter((job) =>
-            job.currentStatus
-              .toLowerCase()
-              .includes(filterStatus.toLowerCase()),
-          );
+        : tailoringJobs.filter((job) => job.currentStatus === filterStatus);
 
     return (
       <div className="space-y-8">
@@ -827,36 +873,47 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </p>
           </div>
           <div className="flex gap-6 text-sm flex-wrap">
-            <span className="text-gray-500">
-              All: <b className="text-gray-900">{tailoringJobs.length}</b>
+            <span>
+              All: <b>{tailoringJobs.length}</b>
             </span>
-            <span className="text-red-500">
-              Pending:{" "}
+
+            <span className="text-blue-600">
+              Order Received:
               <b>
                 {
-                  tailoringJobs.filter((j) =>
-                    j.currentStatus.includes("Fabric"),
+                  tailoringJobs.filter(
+                    (j) => j.currentStatus === "Order Received",
                   ).length
                 }
               </b>
             </span>
-            <span className="text-yellow-600">
-              Stitching:{" "}
+
+            <span className="text-orange-500">
+              Cutting:
               <b>
                 {
-                  tailoringJobs.filter((j) =>
-                    j.currentStatus.includes("Stitch"),
-                  ).length
+                  tailoringJobs.filter((j) => j.currentStatus === "Cutting")
+                    .length
                 }
               </b>
             </span>
+
+            <span className="text-purple-600">
+              Stitching:
+              <b>
+                {
+                  tailoringJobs.filter((j) => j.currentStatus === "Stitching")
+                    .length
+                }
+              </b>
+            </span>
+
             <span className="text-green-600">
-              Done:{" "}
+              Completed:
               <b>
                 {
-                  tailoringJobs.filter((j) =>
-                    j.currentStatus.includes("Dispatch"),
-                  ).length
+                  tailoringJobs.filter((j) => j.currentStatus === "Completed")
+                    .length
                 }
               </b>
             </span>
@@ -865,7 +922,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {/* Filter pills */}
         <div className="flex gap-2 flex-wrap">
-          {["All", "Fabric", "Pattern", "Stitch", "Finishing", "Dispatch"].map(
+          {["All", "Order Received", "Cutting", "Stitching", "Completed"].map(
             (f) => (
               <button
                 key={f}
@@ -891,18 +948,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         <div className="grid md:grid-cols-2 gap-6">
           {filteredJobs.map((job) => {
-            const isDelayed =
-              job.currentStatus === "Fabric Sourcing & Inspection" &&
-              job.statusHistory.length === 0;
+            const isCompleted = job.currentStatus === "Completed";
+
+            const isStitching = job.currentStatus === "Stitching";
 
             return (
               <div
                 key={job.id}
-                className={`p-6 rounded-2xl border shadow-sm transition-shadow hover:shadow-md ${
-                  isDelayed
-                    ? "bg-red-50 border-red-200"
-                    : "bg-white border-gray-200"
-                }`}
+                className={`p-6 rounded-2xl border shadow-sm transition-all
+
+  ${
+    job.currentStatus === "Completed"
+      ? "bg-green-50 border-green-400 border-2"
+      : job.currentStatus === "Stitching"
+        ? "bg-purple-50 border-purple-400 border-2"
+        : job.currentStatus === "Cutting"
+          ? "bg-orange-50 border-orange-400 border-2"
+          : job.priority === "high"
+            ? "bg-red-50 border-red-400 border-2"
+            : "bg-blue-50 border-blue-400 border-2"
+  }
+`}
               >
                 {/* Job header */}
                 <div className="flex justify-between items-start mb-3">
@@ -916,16 +982,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </p>
                   </div>
                   <span
-                    className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                      (jobPriority[job.id] || "medium") === "urgent"
-                        ? "bg-red-100 text-red-700"
-                        : (jobPriority[job.id] || "medium") === "low"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-yellow-100 text-yellow-800"
-                    }`}
+                    className={`text-xs px-3 py-1 rounded-full font-bold
+
+  ${
+    job.currentStatus === "Completed"
+      ? "bg-green-100 text-green-700"
+      : job.currentStatus === "Stitching"
+        ? "bg-purple-100 text-purple-700"
+        : job.currentStatus === "Cutting"
+          ? "bg-orange-100 text-orange-700"
+          : "bg-blue-100 text-blue-700"
+  }
+`}
                   >
-                    {jobPriority[job.id] || "medium"}
+                    {job.currentStatus}
                   </span>
+                  <div className="flex gap-2 mt-2">
+                    <span
+                      className={`text-[10px] px-2 py-1 rounded-full font-bold
+
+    ${
+      job.priority === "high"
+        ? "bg-red-100 text-red-700"
+        : job.priority === "medium"
+          ? "bg-yellow-100 text-yellow-700"
+          : "bg-green-100 text-green-700"
+    }
+  `}
+                    >
+                      {job.priority?.toUpperCase()}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Measurements */}
@@ -987,7 +1074,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="border-2 border-dashed border-gray-200 rounded-lg h-24 flex items-center justify-center hover:border-gray-400 transition overflow-hidden">
                         {job.examples && job.examples.length > 0 ? (
                           <img
-                            src={job.examples[0].url}
+                            src={imageUrl(job.examples[0].url)}
                             className="w-full h-full object-cover"
                             alt="Before"
                           />
@@ -1013,7 +1100,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="border-2 border-dashed border-gray-200 rounded-lg h-24 flex items-center justify-center hover:border-gray-400 transition overflow-hidden">
                         {job.finishedProductImage ? (
                           <img
-                            src={job.finishedProductImage.url}
+                            src={imageUrl(job.finishedProductImage.url)}
                             className="w-full h-full object-cover"
                             alt="After"
                           />
@@ -1038,18 +1125,48 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {/* Footer actions */}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <select
-                    value={jobPriority[job.id] || "medium"}
-                    onChange={(e) =>
-                      setJobPriority((prev) => ({
-                        ...prev,
-                        [job.id]: e.target.value,
-                      }))
-                    }
-                    className="border px-2 py-1 rounded text-xs"
+                    value={job.priority || "medium"}
+                    onChange={async (e) => {
+                      const priority = e.target.value;
+
+                      try {
+                        const res = await fetch(
+                          `${API_URL}/api/tailoring/${job.id}/priority`,
+                          {
+                            method: "PUT",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                              priority,
+                            }),
+                          },
+                        );
+
+                        if (!res.ok) {
+                          throw new Error("Failed");
+                        }
+
+                        fetchTailoringJobs();
+                      } catch (err) {
+                        console.error(err);
+                        alert("Priority update failed");
+                      }
+                    }}
+                    className={`border px-3 py-1 rounded text-xs font-semibold
+
+  ${
+    job.priority === "high"
+      ? "bg-red-100 text-red-700 border-red-300"
+      : job.priority === "medium"
+        ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+        : "bg-green-100 text-green-700 border-green-300"
+  }
+`}
                   >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="urgent">Urgent</option>
+                    <option value="low">🟢 Low</option>
+                    <option value="medium">🟡 Medium</option>
+                    <option value="high">🔴 High</option>
                   </select>
 
                   <div className="flex gap-2">
@@ -1130,12 +1247,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {STATUS_FLOW.map((s) => (
                       <button
                         key={s}
-                        onClick={() => updateJobStatus(job.id, s)}
-                        className={`text-xs px-2 py-1 rounded border transition ${
-                          job.currentStatus === s
-                            ? "bg-black text-white border-black"
-                            : "border-gray-300 hover:bg-gray-100"
-                        }`}
+                        onClick={() => handleStatusClick(job, s)}
+                        className={`text-xs px-3 py-1 rounded border
+
+${
+  job.currentStatus === s
+    ? s === "Completed"
+      ? "bg-green-600 text-white border-green-600"
+      : s === "Stitching"
+        ? "bg-purple-600 text-white border-purple-600"
+        : s === "Cutting"
+          ? "bg-orange-600 text-white border-orange-600"
+          : "bg-blue-600 text-white border-blue-600"
+    : "border-gray-300 hover:bg-gray-100"
+}`}
                       >
                         {s}
                       </button>
@@ -1145,14 +1270,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="grid grid-cols-2 gap-2">
                     {job.examples?.[0] && (
                       <img
-                        src={job.examples[0].url}
+                        src={imageUrl(job.examples[0].url)}
                         className="h-24 w-full object-cover rounded-lg"
                         alt="Before"
                       />
                     )}
                     {job.finishedProductImage && (
                       <img
-                        src={job.finishedProductImage.url}
+                        src={imageUrl(job.finishedProductImage.url)}
                         className="h-24 w-full object-cover rounded-lg"
                         alt="After"
                       />

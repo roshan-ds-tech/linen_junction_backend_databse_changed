@@ -1,7 +1,7 @@
-import { API_URL } from "../config";
-import React, { useState } from "react";
+import { API_URL, imageUrl } from "../config";
+import React, { useState, useRef, useEffect } from "react";
 import { CartItem, User } from "../types";
-let hasPlacedOrder = false;
+
 declare global {}
 
 interface CheckoutProps {
@@ -19,6 +19,15 @@ interface CheckoutProps {
 
 const Checkout: React.FC<CheckoutProps> = ({ cart, onComplete, user }) => {
   const [step, setStep] = useState<"logistics">("logistics");
+  const hasPlacedOrder = useRef(false);
+
+  // Reset the order guard when the component unmounts
+  useEffect(() => {
+    return () => {
+      hasPlacedOrder.current = false;
+    };
+  }, []);
+
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -45,14 +54,15 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, onComplete, user }) => {
   const total = subtotal + tailoringTotal;
 
   const handlePlaceOrder = async () => {
-    if (hasPlacedOrder) return; // 🚨 GLOBAL BLOCK
-    hasPlacedOrder = true;
-    try {
-      if (!formData.name || !formData.phone || !formData.address) {
-        alert("Please fill all details");
-        return;
-      }
+    if (hasPlacedOrder.current) return;
 
+    if (!formData.name || !formData.phone || !formData.address) {
+      alert("Please fill all details");
+      return;
+    }
+
+    hasPlacedOrder.current = true;
+    try {
       const orderData = {
         customer: {
           name: formData.name,
@@ -151,6 +161,7 @@ Tailoring: ${
       }, 1000);
     } catch (err) {
       console.error("Order failed ❌", err);
+      hasPlacedOrder.current = false;
     }
   };
 
@@ -312,7 +323,7 @@ Tailoring: ${
                       <img
                         src={
                           item.image
-                            ? `${API_URL}${item.image}`
+                            ? imageUrl(item.image)
                             : "https://via.placeholder.com/150"
                         }
                       />

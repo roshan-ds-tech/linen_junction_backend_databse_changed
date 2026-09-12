@@ -1,4 +1,4 @@
-import { API_URL } from "../config";
+import { API_URL, imageUrl } from "../config";
 import React, { useState, useEffect } from "react";
 import { Product } from "../types";
 
@@ -37,8 +37,6 @@ const Home: React.FC<HomeProps> = ({
     return <div className="text-center py-20">Loading fabrics...</div>;
   }
 
-  console.log(products);
-  console.log("API URL:", API_URL);
   return (
     <div className="overflow-hidden">
       {/* Hero Section */}
@@ -122,7 +120,7 @@ const Home: React.FC<HomeProps> = ({
                     <img
                       src={
                         product.image
-                          ? `${API_URL}${product.image}`
+                          ? imageUrl(product.image)
                           : "https://via.placeholder.com/300"
                       }
                       alt={product.name}

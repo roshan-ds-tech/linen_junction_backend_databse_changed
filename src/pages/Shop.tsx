@@ -1,4 +1,4 @@
-import { API_URL } from "../config";
+import { API_URL, imageUrl } from "../config";
 import React, { useState, useEffect, useMemo } from "react";
 import { Product } from "../types";
 
@@ -82,7 +82,6 @@ const Shop: React.FC<ShopProps> = ({
           p.category &&
           p.category.toLowerCase().trim() === category.toLowerCase().trim(),
       );
-      console.log(products);
     }
 
     if (weight !== "All") {
@@ -94,7 +93,7 @@ const Shop: React.FC<ShopProps> = ({
       result = result.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q),
+          (p.description || "").toLowerCase().includes(q),
       );
     }
 
@@ -217,16 +216,13 @@ const Shop: React.FC<ShopProps> = ({
                     id={`product-${product.id}`}
                     className="min-w-[32%] sm:min-w-[45%] md:min-w-0 snap-center group cursor-pointer relative premium-reveal text-center md:text-left"
                     style={{ animationDelay: `${0.3 + idx * 0.05}s` }}
-                    onClick={() => {
-                      console.log("Clicked product:", product);
-                      onProductClick(product);
-                    }}
+                    onClick={() => onProductClick(product)}
                   >
                     <div className="relative overflow-hidden mb-3 md:mb-6 aspect-[3/4] bg-brand-white rounded-xl md:rounded-[32px] shadow-sm transition-all duration-700 group-hover:shadow-2xl border border-brand-silver">
                       <img
                         src={
                           product.image
-                            ? `${API_URL}${product.image}`
+                            ? imageUrl(product.image)
                             : "https://via.placeholder.com/300"
                         }
                         alt={product.name}

@@ -4,13 +4,16 @@ export interface Product {
   sku: string;
   pricePerMeter: number;
   category: string;
-  clothType?: string; // 🔥 ADD THIS
+  clothType?: string;
+  discountPrice?: number;
+  availableLengths?: string[];
+  colors?: string[];
 
   description?: string;
   image: string;
   images: string[]; // for backend URLs
 
-  imageFiles?: File[]; // 🔥 ADD THIS (for upload)
+  imageFiles?: File[]; // for upload
 
   inventory: {
     id?: string;
@@ -22,12 +25,15 @@ export interface Product {
   weight?: string;
 }
 export interface CartItem extends Product {
-  product_id: string; // 🔥 ADD THIS (for backend reference)
-  name: string; // 🔥 ADD THIS (for backend reference)
+  product_id: string;
+  name: string;
   selectedMeters: number;
+  selectedColor?: string;
   addTailoringService: boolean;
   measurements?: Measurements;
   quantity: number;
+  stitchingType?: string;
+  stitchingPrice?: number;
 }
 
 export interface Measurements {
@@ -64,9 +70,11 @@ export interface TailoringJob {
   tailorName?: string;
   stitchingType?: string | null;
   stitchingPrice?: number;
+  priority?: string;
 }
 
 export interface PhotoDetail {
+  id?: string;
   url: string;
   capturedAt: string;
   capturedBy: string; // Tailor Name or Customer Name

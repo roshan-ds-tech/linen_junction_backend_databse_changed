@@ -560,7 +560,6 @@ app.get("/api/tailoring/jobs", (req, res) => {
 app.put("/api/tailoring/:jobId/status", (req, res) => {
   const { jobId } = req.params;
   const { status, tailor } = req.body;
-
   db.run(
     `UPDATE tailoring_jobs 
      SET status=?, tailor_name=?, updated_at=? 
@@ -570,24 +569,52 @@ app.put("/api/tailoring/:jobId/status", (req, res) => {
       if (err) return res.status(500).json({ error: err.message });
 
       db.run(
-        `INSERT INTO tailoring_logs 
+        `INSERT INTO tailoring_logs
    VALUES (?, ?, ?, ?, ?, ?)`,
         [
-          Date.now().toString() + Math.random(), // ✅ FIXED
+          Date.now().toString() + Math.random(),
           jobId,
-          "Order Received",
-          "Job created",
-          "System",
+          status,
+          `Status changed to ${status}`,
+          tailor || "System",
           new Date().toISOString(),
         ],
       );
 
       io.emit("log", `🧵 Job ${jobId} → ${status}`);
+      io.emit("tailoring:update");
+
       res.json({ success: true });
     },
   );
 });
 
+app.put("/api/tailoring/:jobId/priority", (req, res) => {
+  const { jobId } = req.params;
+  const { priority } = req.body;
+
+  db.run(
+    `
+    UPDATE tailoring_jobs
+    SET priority=?, updated_at=?
+    WHERE id=?
+    `,
+    [priority, new Date().toISOString(), jobId],
+    function (err) {
+      if (err) {
+        return res.status(500).json({
+          error: err.message,
+        });
+      }
+
+      io.emit("tailoring:update");
+
+      res.json({
+        success: true,
+      });
+    },
+  );
+});
 // ================= UPLOAD TAILORING IMAGE =================
 
 app.post("/api/tailoring/upload", upload.single("image"), (req, res) => {
@@ -601,24 +628,79 @@ app.post("/api/tailoring/upload", upload.single("image"), (req, res) => {
     [Date.now().toString(), jobId, type, imagePath],
   );
 
+  io.emit("tailoring:update");
   res.json({ url: imagePath });
 });
 
 // DELETE TAILORING JOB
+app.delete("/api/tailoring/image/:imageId", (req, res) => {
+  db.run(
+    `DELETE FROM tailoring_images WHERE id=?`,
+    [req.params.imageId],
+    function (err) {
+      if (err) {
+        return res.status(500).json({
+          error: err.message,
+        });
+      }
+
+      io.emit("tailoring:update");
+
+      res.json({
+        success: true,
+      });
+    },
+  );
+});
+
 app.delete("/api/tailoring/:jobId", (req, res) => {
   const { jobId } = req.params;
 
-  db.run(`DELETE FROM tailoring_jobs WHERE id=?`, [jobId], function (err) {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: err.message });
-    }
-
+  db.serialize(() => {
     db.run(`DELETE FROM tailoring_logs WHERE job_id=?`, [jobId]);
+
     db.run(`DELETE FROM tailoring_images WHERE job_id=?`, [jobId]);
 
-    res.json({ success: true });
+    db.run(`DELETE FROM tailoring_jobs WHERE id=?`, [jobId], function (err) {
+      if (err) {
+        return res.status(500).json({
+          error: err.message,
+        });
+      }
+
+      io.emit("tailoring:update");
+
+      res.json({
+        success: true,
+      });
+    });
   });
+});
+
+app.put("/api/tailoring/:jobId/priority", (req, res) => {
+  const { jobId } = req.params;
+  const { priority } = req.body;
+
+  db.run(
+    `
+    UPDATE tailoring_jobs
+    SET priority=?, updated_at=?
+    WHERE id=?
+    `,
+    [priority, new Date().toISOString(), jobId],
+    function (err) {
+      if (err)
+        return res.status(500).json({
+          error: err.message,
+        });
+
+      io.emit("tailoring:update");
+
+      res.json({
+        success: true,
+      });
+    },
+  );
 });
 
 // ================= INVENTORY =================

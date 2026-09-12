@@ -1,4 +1,4 @@
-import { API_URL } from "../config";
+import { API_URL, imageUrl } from "../config";
 import React from "react";
 import { CartItem } from "../types";
 
@@ -32,8 +32,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
         item.quantity,
     0,
   );
-  console.log("CART ITEMS:", items);
-
   // const handleCheckout = async () => {
   //   try {
   //     console.log("Sending items:", items); // 🔥 debug
@@ -118,7 +116,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                     <img
                       src={
                         item.image
-                          ? `${API_URL}${item.image}`
+                          ? imageUrl(item.image)
                           : "https://via.placeholder.com/150"
                       }
                       alt={item.name}

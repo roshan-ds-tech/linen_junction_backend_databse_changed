@@ -3,3 +3,8 @@ backend/node_modules
 .env
 backend/.env
 dist
+__pycache__/
+*.pyc
+backend/venv/
+backend/database.db-shm
+backend/database.db-wal

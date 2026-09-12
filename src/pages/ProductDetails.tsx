@@ -1,4 +1,4 @@
-import { API_URL } from "../config";
+import { API_URL, imageUrl } from "../config";
 import React, { useState, useRef } from "react";
 import { Product, CartItem, Measurements } from "../types";
 import { STITCHING_OPTIONS } from "../utils/stitchingConfig";
@@ -194,7 +194,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
                 <img
                   src={
                     mainImage
-                      ? `${API_URL}${mainImage}`
+                      ? imageUrl(mainImage)
                       : "https://via.placeholder.com/500"
                   }
                   alt={product.name}
