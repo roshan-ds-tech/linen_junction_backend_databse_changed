@@ -13,8 +13,6 @@ from pathlib import Path
 from contextlib import contextmanager
 from typing import Optional
 
-from contextlib import asynccontextmanager
-
 import cloudinary
 import cloudinary.uploader
 
@@ -246,14 +244,11 @@ def _delete_from_cloudinary(url: str):
 #  FASTAPI APP
 # ═══════════════════════════════════════════════════════════════
 
-@asynccontextmanager
-async def lifespan(application: FastAPI):
-    """Startup/shutdown lifecycle."""
-    init_db()
-    yield
+app = FastAPI(title="Linen Junction API")
 
-
-app = FastAPI(title="Linen Junction API", lifespan=lifespan)
+# Initialise DB synchronously at import time so a2wsgi / PythonAnywhere
+# WSGI workers never deadlock waiting for the async lifespan to complete.
+init_db()
 
 # CORS -- allow frontend origins
 app.add_middleware(
