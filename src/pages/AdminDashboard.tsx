@@ -349,8 +349,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         body: formData,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const responseText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Non-JSON response from server:", responseText);
+        throw new Error(`Server returned an error: ${res.status} ${res.statusText}`);
+      }
+
+      if (!res.ok) throw new Error(data.error || "Failed to add product");
 
       await fetchProducts();
 

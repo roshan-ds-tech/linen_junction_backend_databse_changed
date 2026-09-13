@@ -102,7 +102,7 @@ def create_product():
     f = request.files.get("image")
     if f and f.filename: img = _upload(f)
     with get_db() as conn:
-        conn.execute("INSERT INTO products VALUES (?,?,?,?,?,?,?)", (pid,name,sku,ppm,cat,desc,img))
+        conn.execute("INSERT INTO products (id, name, sku, pricePerMeter, category, description, image) VALUES (?,?,?,?,?,?,?)", (pid,name,sku,ppm,cat,desc,img))
         conn.commit()
     add_log("Product added: " + name)
     return jsonify({"success": True, "id": pid})
