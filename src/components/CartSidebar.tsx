@@ -1,4 +1,4 @@
-import { API_URL, imageUrl } from "../config";
+import { imageUrl } from "../config";
 import React from "react";
 import { CartItem } from "../types";
 

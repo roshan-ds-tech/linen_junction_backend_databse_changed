@@ -1,4 +1,5 @@
 import React from 'react';
+import { imageUrl } from '../config';
 import { Order, TailoringJob } from '../types';
 
 interface OrderHistoryProps {
@@ -63,7 +64,7 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({ orders, tailoringJobs }) =>
                         <div className="space-y-4">
                           {order.items.map((item, idx) => (
                             <div key={idx} className="flex items-center gap-6 p-4 rounded-2xl bg-brand-silver/5 border border-brand-silver/20 group-hover:bg-white transition-colors">
-                              <img src={item.images[0]} className="w-16 h-20 object-cover rounded-xl shadow-md" alt="" />
+                              <img src={item.image ? imageUrl(item.image) : "https://placehold.co/200x250?text=No+Image"} className="w-16 h-20 object-cover rounded-xl shadow-md" alt={item.name || ""} onError={(e) => { (e.target as HTMLImageElement).src = "https://placehold.co/200x250?text=No+Image"; }} />
                               <div className="flex-1">
                                 <h5 className="font-serif font-bold text-brand-earth text-base">{item.name}</h5>
                                 <p className="text-[10px] text-brand-earth/50 font-bold uppercase tracking-widest mt-1">

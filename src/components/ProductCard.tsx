@@ -1,4 +1,5 @@
 import React from 'react';
+import { imageUrl } from '../config';
 import { Product } from '../types';
 
 interface ProductCardProps {
@@ -14,7 +15,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
     >
       <div className="relative aspect-[3/4] overflow-hidden">
         <img 
-          src={product.images[0]} 
+          src={product.image ? imageUrl(product.image) : "https://placehold.co/400x500?text=No+Image"} 
           alt={product.name} 
           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
         />

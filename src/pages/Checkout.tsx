@@ -1,4 +1,4 @@
-import { API_URL, imageUrl } from "../config";
+import { imageUrl } from "../config";
 import React, { useState, useRef, useEffect } from "react";
 import { CartItem, User } from "../types";
 

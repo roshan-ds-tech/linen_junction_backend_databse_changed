@@ -1,4 +1,4 @@
-import { API_URL, imageUrl } from "../config";
+import { imageUrl } from "../config";
 import React, { useState, useRef } from "react";
 import { Product, CartItem, Measurements } from "../types";
 import { STITCHING_OPTIONS } from "../utils/stitchingConfig";
