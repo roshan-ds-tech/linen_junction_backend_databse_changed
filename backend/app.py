@@ -88,24 +88,37 @@ def get_products():
     with get_db() as conn:
         return jsonify([dict(r) for r in conn.execute("SELECT * FROM products").fetchall()])
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    return jsonify({"error": str(e), "type": type(e).__name__}), 500
+
 @app.route("/api/products", methods=["POST"])
 def create_product():
-    name = (request.form.get("name") or "").strip()
-    sku = request.form.get("sku") or ""
-    ppm = float(request.form.get("pricePerMeter") or 0)
-    cat = (request.form.get("category") or "").strip()
-    desc = request.form.get("description") or ""
-    if not name: return jsonify({"error": "Product name required"}), 400
-    if not cat: return jsonify({"error": "Category required"}), 400
-    pid = uuid.uuid4().hex
-    img = ""
-    f = request.files.get("image")
-    if f and f.filename: img = _upload(f)
-    with get_db() as conn:
-        conn.execute("INSERT INTO products (id, name, sku, pricePerMeter, category, description, image) VALUES (?,?,?,?,?,?,?)", (pid,name,sku,ppm,cat,desc,img))
-        conn.commit()
-    add_log("Product added: " + name)
-    return jsonify({"success": True, "id": pid})
+    try:
+        name = (request.form.get("name") or "").strip()
+        sku = request.form.get("sku") or ""
+        ppm = float(request.form.get("pricePerMeter") or 0)
+        cat = (request.form.get("category") or "").strip()
+        desc = request.form.get("description") or ""
+        if not name: return jsonify({"error": "Product name required"}), 400
+        if not cat: return jsonify({"error": "Category required"}), 400
+        pid = uuid.uuid4().hex
+        img = ""
+        f = request.files.get("image")
+        if f and f.filename: 
+            try:
+                img = _upload(f)
+            except Exception as e:
+                return jsonify({"error": f"Image upload failed: {str(e)}"}), 500
+        with get_db() as conn:
+            conn.execute("INSERT INTO products (id, name, sku, pricePerMeter, category, description, image) VALUES (?,?,?,?,?,?,?)", (pid,name,sku,ppm,cat,desc,img))
+            conn.commit()
+        add_log("Product added: " + name)
+        return jsonify({"success": True, "id": pid})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Database/Server error: {str(e)}", "trace": traceback.format_exc()}), 500
 
 @app.route("/api/products/<pid>", methods=["PUT"])
 def update_product(pid):
